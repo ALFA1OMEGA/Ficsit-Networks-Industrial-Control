@@ -344,6 +344,10 @@ function main_prog()
     print("flush")
     fluid[i]:flush()
    end
+   if itemName == "Wasser" and isF >= maxF then
+    print("flush")
+    fluid[i]:flush()
+   end
    if itemName == "Aluoxid-Lösung" and isF >= maxF then
     print("flush")
     fluid[i]:flush()
