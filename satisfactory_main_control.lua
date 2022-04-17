@@ -2,9 +2,10 @@
 emergency_power_limit = 4500
 power_text_length = 43
 cont_text_length = 55
-Server = "513DA8754E9C4B5255BE6CB5262F2077"
+line_per_page = 30
+Server = "A95659614E3764D6CA3A53948E6E9FFE"
 Name = "Main_PC"
-screen_id = "E2751B9A40B9F1E8D769C79400FD5CD8"
+screen_id = "9B34CEF64FECFCB17E3A95B2CE1B6340"
 ----------------------get-hardware---------------------------------
 local NetworkCard = computer.getPCIDevices(findClass("NetworkCard"))[1]
  
@@ -49,6 +50,8 @@ local fluid = component.proxy(component.findComponent("F_Storage"))
 local bat = component.proxy(component.findComponent("Battery"))
 local pole = component.proxy(component.findComponent("Pole"))
 local maschine_stat = "Offline"
+local page = 1
+local max_page = 1
 ---------------------functions------------------------------------------
 function bios()
  --print("Screen-ID: "..screen.id)
@@ -151,7 +154,7 @@ end
 function network_send(receiver, port, data)
  netcard = component.proxy(NetworkCard.id)
  netcard:open(port)
- netcard:send(receiver, port, data) print("Data Sent to: "..receiver..", on Port: "..port)
+ netcard:send(receiver, port, data)
 end
 
 function get_max_power(n)
@@ -183,10 +186,16 @@ function main_prog()
  for i=1, #gen do
   gen[i].standby = true
  end
- button = panel[1]:getModule(5,5)
- display = panel[1]:getModule(5,9)
- display.text = "Running..."
- display.size = 50
+ if #panel ~= 0 then
+  button = panel[1]:getModule(5,5)
+  button_1 = panel[1]:getModule(0,0)
+  display = panel[1]:getModule(5,9)
+  display_1 = panel[1]:getModule(2,2)
+  display.text = "Running..."
+  display.size = 50
+  display_1.text = "    Next Page \n    "..page.."/"..max_page
+  display_1.size = 50
+ end
  for i=1, #machine do
   machine[i].standby = false
   maschine_stat = "Online"
@@ -196,7 +205,7 @@ function main_prog()
  end
  for i=1, #pole do
   pole[i]:setcolor(0,1,0,5)
- end 
+ end
  while true do
   network_send(Server, 5256, Name)
   gpu:fill(0,0,w,h," ")
@@ -267,18 +276,37 @@ function main_prog()
   draw_frame(power_text_length,2,lines+1,"down")
   draw_frame(0,lines+4,power_text_length,"right")
   linesB = 0
-  for i=1, #storage do
+-------------------------------------------------------------------------------------------------------------------------------
+  line_start = 1
+  line_end = line_per_page
+  max_page = math.floor(#storage / line_per_page)
+  if max_page < (#storage / line_per_page) then
+   max_page = max_page + 1
+  end
+  if page > 1 then
+   line_start = line_per_page * (page-1)
+   line_end = line_per_page * page
+  end
+  display_1.text = "    Next Page \n"..page.."/"..max_page.."            "..line_start.."-"..line_end
+  if line_end > #storage then
+   line_end = #storage
+  end
+  for i=line_start, line_end do
+   text_line = i+1
+   if page > 1 then
+    text_line = (i-line_per_page)+1
+   end
    inv = storage[i]:getInventories()[1]
    inv:sort()
    amount = inv.itemCount
    itemName = "Empty"
    max = 0
    if amount > 1 then
-      max = inv:getStack(0).count * inv.size
-      itemName = inv:getStack(0).item.type.name
+    max = inv:getStack(0).count * inv.size
+    itemName = inv:getStack(0).item.type.name
    end
-   gpu:setText(power_text_length+1,i+1, "Container_"..i)
-   gpu:setText(power_text_length+14,i+1, itemName)
+   gpu:setText(power_text_length+1,text_line, "Container_"..i)
+   gpu:setText(power_text_length+14,text_line, itemName)
    if (max/2) > amount then
     gpu:setForeground(1,0,0,1)
    end
@@ -291,8 +319,9 @@ function main_prog()
    if amount == 0 then
     gpu:setForeground(1,0,0,1)
    end
-   gpu:setText(power_text_length+45,i+1, amount.."/"..max)
+   gpu:setText(power_text_length+45,text_line, amount.."/"..max)
    gpu:setForeground(1,1,1,1)
+   gpu:setText(80,0, "Page: "..page)
    linesB = i
    network_send(Server, 8080, "Container_"..i.."|"..itemName.."|"..amount.."/"..max)
   end
@@ -300,6 +329,7 @@ function main_prog()
   draw_frame(power_text_length,2,linesB-1,"down")
   draw_frame(power_text_length+cont_text_length+1,2,linesB-1,"down")
   draw_frame(power_text_length,linesB+2,cont_text_length+1,"right")
+-----------------------------------------------------------------------------------------------------------------------------------
   num_machine = #machine
   gpu:setText(1,lines+5, "Machine found: "..num_machine)
   gpu:setText(1,lines+6, "Machine are ")
@@ -372,10 +402,19 @@ function main_prog()
   gpu:setText(115, 1, round(maxCap).."MW")
   end
   gpu:flush()
-  event.listen(button)
+  event.listen(button, button_1)
   e, s = event.pull(30)
+  if s == button_1 then
+   page = page + 1
+   if page > max_page then
+    page = 1
+   end
+   display_1.text = "    Next Page \n"..page.."/"..max_page.."            "..line_start.."-"..line_end
+   display_1.size = 50
+  end
   if s == button then
    display.text = "STOP!!!"
+   display_1.text = ""
    for i=1, #machine do
     machine[i].standby = true
     maschine_stat = "Offline"
