@@ -1,12 +1,16 @@
 ----------------------var------------------------------------------
-Server = "513DA8754E9C4B5255BE6CB5262F2077"
+Server = "A95659614E3764D6CA3A53948E6E9FFE"
 Name = "Terminal_1"
 data_typ = {}
 data_name = {}
 data_amount = {}
-screen_id = "4F1C93F047CF0AD8C8978D8EE7203FED"
+screen_id = "6E5FB6124199ADC8A83B54A17359CA2E"
+line_per_page = 28
 ---------------------get-hardware----------------------------------
+local page = 1
+local max_page = 1
 local NetworkCard = computer.getPCIDevices(findClass("NetworkCard"))[1]
+local panel = component.proxy(component.findComponent("Panel"))
 
 local gpu = computer.getPCIDevices(findClass("GPUT1"))[1]
 if not gpu then
@@ -24,6 +28,7 @@ if not screen then
  end
  screen = component.proxy(comp_b)
 end
+button_1 = panel[1]:getModule(0,0)
 gpu:bindScreen(screen)
 gpu:setSize(120,34)
 w,h = gpu:getSize()
@@ -101,9 +106,26 @@ function screen_draw()
   gpu:setText(1,line+i,screen_left[i])
   gpu:setText(35,line+i,screen_left_a[i])
  end
- for i=1,#screen_right do
-  gpu:setText(60,line+i,screen_right[i])
-  gpu:setText(107,line+i,screen_right_a[i])
+ line_start = 1
+ line_end = line_per_page
+ max_page = math.floor(#screen_right / line_per_page)
+ if max_page < (#screen_right / line_per_page) then
+  max_page = max_page + 1
+ end
+ if page > 1 then
+  line_start = line_per_page * (page-1)
+  line_end = line_per_page * page
+ end
+ if line_end > #screen_right then
+  line_end = #screen_right
+ end
+ for i=line_start, line_end do
+  text_line = i+line
+  if page > 1 then
+   text_line = (i-line_per_page)+line
+  end
+  gpu:setText(60,text_line,screen_right[i])
+  gpu:setText(107,text_line,screen_right_a[i])
   line_a = i
  end
  draw_frame(0,1,line_a,"down")
@@ -111,14 +133,21 @@ function screen_draw()
  draw_frame(58,1,line_a,"down")
  draw_frame(0,1,120,"right")
  draw_frame(0,line_a+2,120,"right")
+ gpu:setText(80,0, "Page: "..page)
  gpu:flush()
 end
 ---------------------register----------------------------------------
 network_send(Server, 5256, Name)
 ---------------------send_data---------------------------------------
 while true do
- event.listen(netcard)
+ event.listen(netcard,button_1)
  typ, to, ip, port, data = event.pull(10)
+ if to == button_1 then
+  page = page + 1
+  if page > max_page then
+   page = 1
+  end
+ end
  network_send(Server, 5256, Name)
  if(port == 8081) then
   cach = split(data,"|")
