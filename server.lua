@@ -2,7 +2,9 @@
 port_register = 5256
 port_data = 8080
 port_req = 8081
-screen_id = "DFFA5D3F42F1DA75F49E669A15F6D56E"
+screen_id = "BE69C4D44606577BC3D57292903CFE77"
+disk = "840440164E4A30C928FA46BE79FD3B86"
+file = "backup.db"
 local server_name = {}
 local server_ip = {}
 local server_ping = {}
@@ -47,6 +49,69 @@ function network_send(receiver, port_s, data)
  netcard = component.proxy(NetworkCard.id)
  netcard:open(port_s)
  netcard:send(receiver, port_s, data)
+end
+
+function search_drives()
+ fs = filesystem
+ fs.initFileSystem("/dev")
+ drive_list = {}
+ for _, drive in pairs(fs.childs("/dev")) do
+  if drive ~= "serial" then
+   table.insert(drive_list,drive)
+  end
+ end
+ return drive_list
+end
+
+function write_file(disk_uuid, FileName, Contents)
+ fs = filesystem
+ fs.initFileSystem("/dev")
+ fs.mount("/dev/"..disk_uuid, "/")
+ local file = fs.open("/"..FileName.."", "a")
+ file:write(Contents,"#")
+ file:close()
+end
+
+function clear_file(disk_uuid, FileName)
+ fs = filesystem
+ fs.initFileSystem("/dev")
+ fs.mount("/dev/"..disk_uuid, "/")
+ local file = fs.open("/"..FileName.."", "w")
+ file:write("")--,"\n")
+ file:close()
+end
+
+function read_file(disk_uuid, FileName)
+ fs = filesystem
+ data = {}
+ fs.initFileSystem("/dev")
+ fs.mount("/dev/"..disk_uuid, "/")
+ local file = fs.open("/"..FileName.."", "r")
+ cach = ""
+ cach = file:read(256)
+ data = split(cach, "#")
+ file:close()
+ return data
+end
+
+function update_file(disk_uuid,FileName, Contens, Seperator)
+ data_update = {}
+ data_r = read_file(disk, file)
+ for i=1, #data_r do
+  if data_r[i] ~= "" then
+   cach_1 = split(data_r[i], Seperator)[2]
+   cach_2 = split(Contens, Seperator)[2]
+   if(cach_1 == cach_2) then
+    table.insert(data_update, Contens);
+   else
+    table.insert(data_update, data_r[i]);
+   end
+  end
+ end
+ clear_file(disk,file)
+ for i=1, #data_update do
+  write_file(disk,file, data_update[i])
+ end
 end
 
 function split(s, delimiter)
@@ -105,7 +170,6 @@ function send_data()
    end
   end
  end
- 
 end
 
 function ping()
@@ -114,6 +178,11 @@ function ping()
  print("Ping")
 end
 ---------------------main_prog---------------------------------------------
+s_drives = search_drives()
+for i=1, #s_drives do
+ print("Drives: "..s_drives[i])
+end
+clear_file(disk,file)
 while true do
  event.listen(netcard)
  typ, to, ip, port, data = event.pull()
@@ -135,11 +204,13 @@ while true do
     table.insert(server_data_typ,cach[1])
     table.insert(server_data_item,cach[2])
     table.insert(server_data_amount,cach[3])
+    write_file(disk,file, data)
    else
     t_pos = table_pos(server_data_item,cach[2])
     if(server_data_amount[t_pos] ~= cach[3]) then 
      --update amount for a item
      server_data_amount[t_pos]=cach[3]
+     update_file(disk,file, data, "|")
     end
    end
   end
