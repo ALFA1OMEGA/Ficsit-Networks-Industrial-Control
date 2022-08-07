@@ -88,8 +88,10 @@ function read_file(disk_uuid, FileName)
  fs.mount("/dev/"..disk_uuid, "/")
  local file = fs.open("/"..FileName.."", "r")
  cach = ""
- cach = file:read(256)
- data = split(cach, "#")
+ cach = file:read(2048)
+ if cach ~= nil then
+  data = split(cach, "#")
+ end
  file:close()
  return data
 end
@@ -114,12 +116,31 @@ function update_file(disk_uuid,FileName, Contens, Seperator)
  end
 end
 
+function load_backup()
+ print("Load data Please wait ...")
+ lo_data = read_file(disk, file)
+ for i=1, #lo_data do
+  cach = split(lo_data[i],"|")
+  ip = "00000000"
+  typ = cach[1]
+  item = cach[2]
+  amount = cach[3]
+  if item ~= nil then
+  table.insert(server_data_ip,ip)
+  table.insert(server_data_typ,typ)
+  table.insert(server_data_item,item)
+  table.insert(server_data_amount,amount) 
+  end
+ end
+ print("Ready")
+end
+
 function split(s, delimiter)
-    result = {};
-    for match in (s..delimiter):gmatch("(.-)"..delimiter) do
-        table.insert(result, match);
-    end
-    return result;
+ result = {};
+ for match in (s..delimiter):gmatch("(.-)"..delimiter) do
+  table.insert(result, match);
+ end
+ return result;
 end
 
 function in_table(table, element)
@@ -182,6 +203,10 @@ s_drives = search_drives()
 for i=1, #s_drives do
  print("Drives: "..s_drives[i])
 end
+disk = s_drives[1]
+print(disk)
+--load_backup()
+computer.beep(5)
 clear_file(disk,file)
 while true do
  event.listen(netcard)

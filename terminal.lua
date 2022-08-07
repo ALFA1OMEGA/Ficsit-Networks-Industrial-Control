@@ -139,6 +139,7 @@ end
 ---------------------register----------------------------------------
 network_send(Server, 5256, Name)
 ---------------------send_data---------------------------------------
+computer.beep(5)
 while true do
  event.listen(netcard,button_1)
  typ, to, ip, port, data = event.pull(10)

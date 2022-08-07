@@ -148,6 +148,7 @@ function test_network()
  event.pull(3)
  gpu:fill(0,0,w,h," ")
  gpu:flush()
+ computer.beep(5)
  main_prog()
 end
 
@@ -243,7 +244,7 @@ function main_prog()
     maschine_stat = "Online"
    end  
   end
-  gpu:setText(1,2, "Current Max Power. "..power.." MWh")
+  gpu:setText(1,2, "Current Max Power: "..power.." MWh")
   gpu:setForeground(1,1,1,1)
   for i=1, #akw do
    cach = akw[i].standby
@@ -405,6 +406,7 @@ function main_prog()
   event.listen(button, button_1)
   e, s = event.pull(30)
   if s == button_1 then
+   computer.beep(5)
    page = page + 1
    if page > max_page then
     page = 1
